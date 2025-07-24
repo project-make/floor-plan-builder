@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Food Truck Floor Plan Builder</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <h1>Food Truck Floor Plan Builder</h1>
+  </header>
+  <div class="toolbar">
+    <button onclick="validatePlan()">Validate Plan</button>
+    <button onclick="exportAsPDF()">Download as PDF</button>
+    <button onclick="exportAsPNG()">Download as PNG</button>
+  </div>
+  <div class="container">
+    <aside class="sidebar">
+      <h2>Equipment</h2>
+      <ul>
+        <li class="draggable" draggable="true">Handwash Sink</li>
+        <li class="draggable" draggable="true">3-Compartment Sink</li>
+        <li class="draggable" draggable="true">Potable Water Tank</li>
+        <li class="draggable" draggable="true">Wastewater Tank</li>
+        <li class="draggable" draggable="true">Refrigerator</li>
+        <li class="draggable" draggable="true">Flat Top Griddle</li>
+        <li class="draggable" draggable="true">Stove</li>
+        <li class="draggable" draggable="true">Service Window</li>
+        <li class="draggable" draggable="true">Service Counter</li>
+        <li class="draggable" draggable="true">Work Table</li>
+        <li class="draggable" draggable="true">Generator</li>
+        <li class="draggable" draggable="true">Propane Tank</li>
+      </ul>
+    </aside>
+    <main class="canvas" id="canvas">
+      <div class="truck-outline">
+        <p>Food Truck Interior</p>
+      </div>
+    </main>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/interactjs/dist/interact.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="script.js"></script>
+  <script src="validate.js"></script>
+</body>
+</html>
