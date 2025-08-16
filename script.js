@@ -11,6 +11,7 @@ canvas.addEventListener('dragover', e => {
 
 
 
+
 canvas.addEventListener('drop', e => {
   e.preventDefault();
   const label = e.dataTransfer.getData('text/plain');
@@ -21,10 +22,10 @@ canvas.addEventListener('drop', e => {
   const newItem = document.createElement('div');
   newItem.className = 'dropped draggable';
   newItem.setAttribute('tabindex', '0');
-  newItem.innerHTML = `<span class="item-label">${label}</span>`;
+  // Make label not editable by default
+  newItem.innerHTML = `<span class="item-label" contenteditable="false">${label}</span>`;
   newItem.style.left = x + 'px';
   newItem.style.top = y + 'px';
-  newItem.setAttribute('contenteditable', 'true');
 
   // Add delete button
   const delBtn = document.createElement('button');
@@ -43,6 +44,26 @@ canvas.addEventListener('drop', e => {
   rotateHandle.title = 'Rotate';
   rotateHandle.innerHTML = '&#8635;';
   newItem.appendChild(rotateHandle);
+
+  // Double click to edit label
+  const labelSpan = newItem.querySelector('.item-label');
+  labelSpan.addEventListener('dblclick', function(e) {
+    e.stopPropagation();
+    labelSpan.setAttribute('contenteditable', 'true');
+    labelSpan.focus();
+    // Select all text for convenience
+    document.execCommand('selectAll', false, null);
+  });
+  // Remove contenteditable on blur or Enter
+  labelSpan.addEventListener('blur', function() {
+    labelSpan.setAttribute('contenteditable', 'false');
+  });
+  labelSpan.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      labelSpan.blur();
+    }
+  });
 
   canvas.appendChild(newItem);
   enableInteract(newItem, gridSize);
