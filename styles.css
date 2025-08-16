@@ -87,9 +87,57 @@ header {
 
 .dropped {
   position: absolute;
-  padding: 0.5rem;
+  padding: 0.5rem 2rem 0.5rem 0.5rem;
   background-color: #dff9fb;
   border: 1px solid #7f8c8d;
   cursor: move;
+  user-select: none;
+  min-width: 60px;
+  min-height: 24px;
+  box-sizing: border-box;
+  transition: box-shadow 0.2s;
+}
+
+.dropped.selected {
+  box-shadow: 0 0 0 2px #2980b9;
+}
+
+.delete-btn {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: #e74c3c;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  z-index: 2;
+  display: none;
+}
+
+.dropped:hover .delete-btn, .dropped.selected .delete-btn {
+  display: block;
+}
+
+.rotate-handle {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 18px;
+  height: 18px;
+  background: #2980b9;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 14px;
+  z-index: 2;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   user-select: none;
 }

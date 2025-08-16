@@ -10,6 +10,7 @@ canvas.addEventListener('dragover', e => {
 });
 
 
+
 canvas.addEventListener('drop', e => {
   e.preventDefault();
   const label = e.dataTransfer.getData('text/plain');
@@ -19,13 +20,35 @@ canvas.addEventListener('drop', e => {
   let y = Math.round(e.offsetY / gridSize) * gridSize;
   const newItem = document.createElement('div');
   newItem.className = 'dropped draggable';
-  newItem.textContent = label;
+  newItem.setAttribute('tabindex', '0');
+  newItem.innerHTML = `<span class="item-label">${label}</span>`;
   newItem.style.left = x + 'px';
   newItem.style.top = y + 'px';
   newItem.setAttribute('contenteditable', 'true');
+
+  // Add delete button
+  const delBtn = document.createElement('button');
+  delBtn.className = 'delete-btn';
+  delBtn.innerHTML = '&times;';
+  delBtn.title = 'Delete';
+  delBtn.onclick = (ev) => {
+    ev.stopPropagation();
+    newItem.remove();
+  };
+  newItem.appendChild(delBtn);
+
+  // Add rotate handle
+  const rotateHandle = document.createElement('div');
+  rotateHandle.className = 'rotate-handle';
+  rotateHandle.title = 'Rotate';
+  rotateHandle.innerHTML = '&#8635;';
+  newItem.appendChild(rotateHandle);
+
   canvas.appendChild(newItem);
   enableInteract(newItem, gridSize);
+  enableRotate(newItem, rotateHandle);
 });
+
 
 
 function enableInteract(el, gridSize = 24) {
@@ -38,7 +61,8 @@ function enableInteract(el, gridSize = 24) {
         // Snap to grid
         x = Math.round(x / gridSize) * gridSize;
         y = Math.round(y / gridSize) * gridSize;
-        target.style.transform = `translate(${x}px, ${y}px)`;
+        const angle = parseFloat(target.getAttribute('data-angle')) || 0;
+        target.style.transform = `translate(${x}px, ${y}px) rotate(${angle}deg)`;
         target.setAttribute('data-x', x);
         target.setAttribute('data-y', y);
       }
@@ -60,18 +84,69 @@ function enableInteract(el, gridSize = 24) {
     x = Math.round(x / gridSize) * gridSize;
     y = Math.round(y / gridSize) * gridSize;
 
-    target.style.transform = 'translate(' + x + 'px,' + y + 'px)';
+    const angle = parseFloat(target.getAttribute('data-angle')) || 0;
+    target.style.transform = `translate(${x}px, ${y}px) rotate(${angle}deg)`;
     target.setAttribute('data-x', x);
     target.setAttribute('data-y', y);
-  }).gesturable({
-    listeners: {
-      move (event) {
-        const angle = (parseFloat(event.target.getAttribute('data-angle')) || 0) + event.da;
-        event.target.style.transform += ' rotate(' + angle + 'deg)';
-        event.target.setAttribute('data-angle', angle);
-      }
+  });
+  // Keyboard delete support
+  el.addEventListener('keydown', function(e) {
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      e.preventDefault();
+      el.remove();
     }
   });
+  // Click to select
+  el.addEventListener('click', function(e) {
+    document.querySelectorAll('.dropped.selected').forEach(item => item.classList.remove('selected'));
+    el.classList.add('selected');
+  });
+  // Deselect on canvas click
+  canvas.addEventListener('click', function(e) {
+    if (e.target === canvas) {
+      document.querySelectorAll('.dropped.selected').forEach(item => item.classList.remove('selected'));
+    }
+  });
+}
+
+// Rotation logic for rotate handle
+function enableRotate(el, handle) {
+  let rotating = false;
+  let startAngle = 0;
+  let startX = 0;
+  let startY = 0;
+  handle.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    rotating = true;
+    const rect = el.getBoundingClientRect();
+    startX = rect.left + rect.width / 2;
+    startY = rect.top + rect.height / 2;
+    startAngle = parseFloat(el.getAttribute('data-angle')) || 0;
+    document.body.style.cursor = 'grabbing';
+  });
+  document.addEventListener('mousemove', function(e) {
+    if (!rotating) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    let angle = Math.atan2(dy, dx) * 180 / Math.PI;
+    angle = Math.round(angle);
+    el.setAttribute('data-angle', angle);
+    const x = parseFloat(el.getAttribute('data-x')) || 0;
+    const y = parseFloat(el.getAttribute('data-y')) || 0;
+    el.style.transform = `translate(${x}px, ${y}px) rotate(${angle}deg)`;
+  });
+  document.addEventListener('mouseup', function() {
+    if (rotating) {
+      rotating = false;
+      document.body.style.cursor = '';
+    }
+  });
+}
+
+// Reset canvas function
+function resetCanvas() {
+  document.querySelectorAll('#canvas .dropped').forEach(el => el.remove());
 }
 
 function exportAsPNG() {
