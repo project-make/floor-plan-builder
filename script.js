@@ -9,26 +9,35 @@ canvas.addEventListener('dragover', e => {
   e.preventDefault();
 });
 
+
 canvas.addEventListener('drop', e => {
   e.preventDefault();
   const label = e.dataTransfer.getData('text/plain');
+  // Snap to grid (24px)
+  const gridSize = 24;
+  let x = Math.round(e.offsetX / gridSize) * gridSize;
+  let y = Math.round(e.offsetY / gridSize) * gridSize;
   const newItem = document.createElement('div');
   newItem.className = 'dropped draggable';
   newItem.textContent = label;
-  newItem.style.left = e.offsetX + 'px';
-  newItem.style.top = e.offsetY + 'px';
+  newItem.style.left = x + 'px';
+  newItem.style.top = y + 'px';
   newItem.setAttribute('contenteditable', 'true');
   canvas.appendChild(newItem);
-  enableInteract(newItem);
+  enableInteract(newItem, gridSize);
 });
 
-function enableInteract(el) {
+
+function enableInteract(el, gridSize = 24) {
   interact(el).draggable({
     listeners: {
       move (event) {
         const target = event.target;
-        const x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
-        const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+        let x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+        let y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+        // Snap to grid
+        x = Math.round(x / gridSize) * gridSize;
+        y = Math.round(y / gridSize) * gridSize;
         target.style.transform = `translate(${x}px, ${y}px)`;
         target.setAttribute('data-x', x);
         target.setAttribute('data-y', y);
@@ -46,6 +55,10 @@ function enableInteract(el) {
 
     x += event.deltaRect.left;
     y += event.deltaRect.top;
+
+    // Snap to grid
+    x = Math.round(x / gridSize) * gridSize;
+    y = Math.round(y / gridSize) * gridSize;
 
     target.style.transform = 'translate(' + x + 'px,' + y + 'px)';
     target.setAttribute('data-x', x);
