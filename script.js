@@ -73,43 +73,49 @@ canvas.addEventListener('drop', e => {
 
 
 function enableInteract(el, gridSize = 24) {
-  interact(el).draggable({
-    listeners: {
-      move (event) {
-        const target = event.target;
-        let x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
-        let y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
-        // Snap to grid
-        x = Math.round(x / gridSize) * gridSize;
-        y = Math.round(y / gridSize) * gridSize;
-        const angle = parseFloat(target.getAttribute('data-angle')) || 0;
-        target.style.transform = `translate(${x}px, ${y}px) rotate(${angle}deg)`;
-        target.setAttribute('data-x', x);
-        target.setAttribute('data-y', y);
+  let resizingEnabled = true;
+  let interactable = interact(el)
+    .draggable({
+      listeners: {
+        move(event) {
+          const target = event.target;
+          let x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+          let y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+          // Snap to grid
+          x = Math.round(x / gridSize) * gridSize;
+          y = Math.round(y / gridSize) * gridSize;
+          const angle = parseFloat(target.getAttribute('data-angle')) || 0;
+          target.style.transform = `translate(${x}px, ${y}px) rotate(${angle}deg)`;
+          target.setAttribute('data-x', x);
+          target.setAttribute('data-y', y);
+        }
       }
-    }
-  }).resizable({
-    edges: { left: true, right: true, bottom: true, top: true }
-  }).on('resizemove', function (event) {
-    let target = event.target;
-    let x = parseFloat(target.getAttribute('data-x')) || 0;
-    let y = parseFloat(target.getAttribute('data-y')) || 0;
+    })
+    .resizable({
+      edges: { left: true, right: true, bottom: true, top: true },
+      enabled: true
+    })
+    .on('resizemove', function (event) {
+      if (!resizingEnabled) return;
+      let target = event.target;
+      let x = parseFloat(target.getAttribute('data-x')) || 0;
+      let y = parseFloat(target.getAttribute('data-y')) || 0;
 
-    target.style.width = event.rect.width + 'px';
-    target.style.height = event.rect.height + 'px';
+      target.style.width = event.rect.width + 'px';
+      target.style.height = event.rect.height + 'px';
 
-    x += event.deltaRect.left;
-    y += event.deltaRect.top;
+      x += event.deltaRect.left;
+      y += event.deltaRect.top;
 
-    // Snap to grid
-    x = Math.round(x / gridSize) * gridSize;
-    y = Math.round(y / gridSize) * gridSize;
+      // Snap to grid
+      x = Math.round(x / gridSize) * gridSize;
+      y = Math.round(y / gridSize) * gridSize;
 
-    const angle = parseFloat(target.getAttribute('data-angle')) || 0;
-    target.style.transform = `translate(${x}px, ${y}px) rotate(${angle}deg)`;
-    target.setAttribute('data-x', x);
-    target.setAttribute('data-y', y);
-  });
+      const angle = parseFloat(target.getAttribute('data-angle')) || 0;
+      target.style.transform = `translate(${x}px, ${y}px) rotate(${angle}deg)`;
+      target.setAttribute('data-x', x);
+      target.setAttribute('data-y', y);
+    });
   // Keyboard delete support
   el.addEventListener('keydown', function(e) {
     if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -119,15 +125,33 @@ function enableInteract(el, gridSize = 24) {
   });
   // Click to select
   el.addEventListener('click', function(e) {
-    document.querySelectorAll('.dropped.selected').forEach(item => item.classList.remove('selected'));
+    document.querySelectorAll('.dropped.selected').forEach(item => {
+      item.classList.remove('selected');
+      // Hide rotation handle on deselect
+      let rh = item.querySelector('.rotate-handle');
+      if (rh) rh.style.display = 'none';
+    });
     el.classList.add('selected');
+    // Show rotation handle only when selected
+    let rh = el.querySelector('.rotate-handle');
+    if (rh) rh.style.display = 'flex';
   });
   // Deselect on canvas click
   canvas.addEventListener('click', function(e) {
     if (e.target === canvas) {
-      document.querySelectorAll('.dropped.selected').forEach(item => item.classList.remove('selected'));
+      document.querySelectorAll('.dropped.selected').forEach(item => {
+        item.classList.remove('selected');
+        let rh = item.querySelector('.rotate-handle');
+        if (rh) rh.style.display = 'none';
+      });
     }
   });
+  // Hide rotation handle by default
+  let rh = el.querySelector('.rotate-handle');
+  if (rh) rh.style.display = 'none';
+  // Expose lock/unlock resizing for rotation
+  el._lockResizing = () => { resizingEnabled = false; };
+  el._unlockResizing = () => { resizingEnabled = true; };
 }
 
 // Rotation logic for rotate handle
@@ -140,6 +164,7 @@ function enableRotate(el, handle) {
     e.preventDefault();
     e.stopPropagation();
     rotating = true;
+    if (el._lockResizing) el._lockResizing(); // Lock resizing while rotating
     const rect = el.getBoundingClientRect();
     startX = rect.left + rect.width / 2;
     startY = rect.top + rect.height / 2;
@@ -160,6 +185,7 @@ function enableRotate(el, handle) {
   document.addEventListener('mouseup', function() {
     if (rotating) {
       rotating = false;
+      if (el._unlockResizing) el._unlockResizing(); // Unlock resizing after rotating
       document.body.style.cursor = '';
     }
   });
@@ -170,24 +196,34 @@ function resetCanvas() {
   document.querySelectorAll('#canvas .dropped').forEach(el => el.remove());
 }
 
+function hideAllRotationHandles() {
+  document.querySelectorAll('.rotate-handle').forEach(h => h.style.display = 'none');
+}
+
 function exportAsPNG() {
-  html2canvas(document.getElementById('canvas')).then(canvas => {
-    const link = document.createElement('a');
-    link.download = 'floor_plan.png';
-    link.href = canvas.toDataURL();
-    link.click();
-  });
+  hideAllRotationHandles();
+  setTimeout(() => {
+    html2canvas(document.getElementById('canvas')).then(canvas => {
+      const link = document.createElement('a');
+      link.download = 'floor_plan.png';
+      link.href = canvas.toDataURL();
+      link.click();
+    });
+  }, 50);
 }
 
 function exportAsPDF() {
-  html2canvas(document.getElementById('canvas')).then(canvas => {
-    const imgData = canvas.toDataURL('image/png');
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF('landscape');
-    const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save('floor_plan.pdf');
-  });
+  hideAllRotationHandles();
+  setTimeout(() => {
+    html2canvas(document.getElementById('canvas')).then(canvas => {
+      const imgData = canvas.toDataURL('image/png');
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF('landscape');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save('floor_plan.pdf');
+    });
+  }, 50);
 }
